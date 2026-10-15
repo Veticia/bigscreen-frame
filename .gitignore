@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Never commit Bigscreen (or any game) files: APKs, extracted assets, libraries
+Games/
+*.apk
+*.apk.partial
+*.obb
+*.unity3d
+*.so
+global-metadata.dat
+work/
+dump/
+
+# Third-party tools kept next to the repo, not part of it
+FramePort/
+FramePort-*.tar.gz
+Il2CppDumper/
+
+# Local notes and scratch
+local/
+tests/_base.apk
+preflight.json

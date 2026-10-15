@@ -1,0 +1,8 @@
+# bigscreen/build_bigscreen.py
+UnityPy>=1.20
+lz4>=4.0
+capstone>=5.0
+# tools/apk_preflight.py (optional)
+androguard>=4.1
+# dev/il2cpp_disasm.py string literals (optional)
+pyelftools>=0.31
