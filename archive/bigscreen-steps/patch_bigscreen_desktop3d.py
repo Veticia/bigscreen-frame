@@ -29,6 +29,12 @@ import re
 import struct
 import sys
 import zipfile
+import os
+import tempfile
+
+# Scratch space for the intermediate bundle (override with BIGSCREEN_SCRATCH).
+SCRATCH = pathlib.Path(os.environ.get('BIGSCREEN_SCRATCH', tempfile.gettempdir())) / 'bigscreen-steps'
+SCRATCH.mkdir(parents=True, exist_ok=True)
 
 try:
     import UnityPy
@@ -107,7 +113,7 @@ def main() -> int:
     src, dst = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
     with zipfile.ZipFile(src) as zsrc:
         members = zsrc.infolist()
-        work = pathlib.Path('/tmp/opencode/desktop3d-in.unity3d')
+        work = SCRATCH / 'desktop3d-in.unity3d'
         work.write_bytes(zsrc.read(BUNDLE_MEMBER))
 
     env = UnityPy.load(str(work))
@@ -128,7 +134,7 @@ def main() -> int:
     obj.save_typetree(t)
     print(f'patched: {SHADER[2]} per-eye 3D split ({len(fixed):,} bytes, offsets unchanged).')
 
-    out_dir = pathlib.Path('/tmp/opencode/desktop3d-out')
+    out_dir = SCRATCH / 'desktop3d-out'
     if out_dir.exists():
         for p in out_dir.iterdir():
             p.unlink()

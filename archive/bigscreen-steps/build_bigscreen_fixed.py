@@ -22,11 +22,16 @@ Usage:
 Defaults to Games/com.bigscreenvr.bigscreen/... -> Games/com.bigscreenvr.bigscreen-fixed/...
 """
 
+import os
 import struct
 import sys
 import tempfile
 import zipfile
 from pathlib import Path
+
+# Scratch space for the intermediate bundle (override with BIGSCREEN_SCRATCH).
+SCRATCH = Path(os.environ.get('BIGSCREEN_SCRATCH', tempfile.gettempdir())) / 'bigscreen-steps'
+SCRATCH.mkdir(parents=True, exist_ok=True)
 
 try:
     from capstone import Cs, CS_ARCH_ARM64, CS_MODE_LITTLE_ENDIAN
@@ -97,7 +102,7 @@ def patch_lib(data: bytearray) -> None:
 def patch_bundle(bundle_bytes: bytes) -> bytes:
     import UnityPy
 
-    tmpdir = Path("/tmp/opencode/fixed-bundle")
+    tmpdir = SCRATCH / "fixed-bundle"
     tmpdir.mkdir(parents=True, exist_ok=True)
     src_tmp = tmpdir / "src.bundle"
     src_tmp.write_bytes(bundle_bytes)

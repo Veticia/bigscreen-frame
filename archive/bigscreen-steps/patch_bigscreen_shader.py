@@ -46,6 +46,12 @@ import copy
 import pathlib
 import sys
 import zipfile
+import os
+import tempfile
+
+# Scratch space for the intermediate bundle (override with BIGSCREEN_SCRATCH).
+SCRATCH = pathlib.Path(os.environ.get('BIGSCREEN_SCRATCH', tempfile.gettempdir())) / 'bigscreen-steps'
+SCRATCH.mkdir(parents=True, exist_ok=True)
 
 try:
     import UnityPy
@@ -84,7 +90,7 @@ def main() -> int:
         non_bundle = {i.filename: zsrc.read(i.filename)
                       for i in members if i.filename != BUNDLE_MEMBER}
 
-    full_path = pathlib.Path('/tmp/opencode/shaderswap-in.unity3d')
+    full_path = SCRATCH / 'shaderswap-in.unity3d'
     full_path.write_bytes(bundle_bytes)
     env = UnityPy.load(str(full_path))
 
@@ -116,7 +122,7 @@ def main() -> int:
     saved = target_obj.save_typetree(new_material)
     target_obj.data = bytearray(saved)
 
-    out_dir = pathlib.Path('/tmp/opencode/shaderswap-out')
+    out_dir = SCRATCH / 'shaderswap-out'
     if out_dir.exists():
         for p in out_dir.iterdir():
             p.unlink()

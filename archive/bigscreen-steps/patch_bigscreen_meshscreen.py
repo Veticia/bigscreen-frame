@@ -36,6 +36,12 @@ import pathlib
 import struct
 import sys
 import zipfile
+import os
+import tempfile
+
+# Scratch space for the intermediate bundle (override with BIGSCREEN_SCRATCH).
+SCRATCH = pathlib.Path(os.environ.get('BIGSCREEN_SCRATCH', tempfile.gettempdir())) / 'bigscreen-steps'
+SCRATCH.mkdir(parents=True, exist_ok=True)
 
 try:
     import UnityPy
@@ -171,7 +177,7 @@ def main() -> int:
         members = zsrc.infolist()
         lib_name = next(n for n in zsrc.namelist() if n.endswith(LIB_SUFFIX))
         lib = bytearray(zsrc.read(lib_name))
-        work = pathlib.Path('/tmp/opencode/meshscreen-in.unity3d')
+        work = SCRATCH / 'meshscreen-in.unity3d'
         work.write_bytes(zsrc.read(BUNDLE_MEMBER))
 
     patch_lib(lib)
@@ -205,7 +211,7 @@ def main() -> int:
         return 1
     print(f'patched: material MovieScreen shader {OLD_SHADER} -> {NEW_SHADER} (OESBlit), same size.')
 
-    out_dir = pathlib.Path('/tmp/opencode/meshscreen-out')
+    out_dir = SCRATCH / 'meshscreen-out'
     if out_dir.exists():
         for p in out_dir.iterdir():
             p.unlink()

@@ -5,7 +5,8 @@ The scripts written during the investigation, one per step, in the order of
 They are kept as a record of what was tried. **Use `bigscreen/build_bigscreen.py` to build**: it applies
 the final patch set from the original APK in one pass and produces a byte-identical result.
 
-Not maintained: they write scratch files to `/tmp/opencode/` and expect intermediate builds.
+Not maintained: they expect intermediate build APKs as inputs (every one documents which build it wants).
+Scratch space defaults to your temp directory (`<tmp>/bigscreen-steps`, override with `BIGSCREEN_SCRATCH`).
 
 | Script | Step | In the final build? |
 |---|---|---|

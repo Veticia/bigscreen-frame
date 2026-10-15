@@ -41,6 +41,12 @@ import pathlib
 import struct
 import sys
 import zipfile
+import os
+import tempfile
+
+# Scratch space for the intermediate bundle (override with BIGSCREEN_SCRATCH).
+SCRATCH = pathlib.Path(os.environ.get('BIGSCREEN_SCRATCH', tempfile.gettempdir())) / 'bigscreen-steps'
+SCRATCH.mkdir(parents=True, exist_ok=True)
 
 try:
     import UnityPy
@@ -107,7 +113,7 @@ def main() -> int:
         members = zsrc.infolist()
         lib_name = next(n for n in zsrc.namelist() if n.endswith(meshscreen.LIB_SUFFIX))
         lib = bytearray(zsrc.read(lib_name))
-        work = pathlib.Path('/tmp/opencode/oesscreen-in.unity3d')
+        work = SCRATCH / 'oesscreen-in.unity3d'
         work.write_bytes(zsrc.read(BUNDLE_MEMBER))
 
     meshscreen.patch_lib(lib)
@@ -172,7 +178,7 @@ def main() -> int:
             return 1
     print(f'patched: {len(IMPOSTOR_RENDERERS)} Underlay Impostor renderers disabled.')
 
-    out_dir = pathlib.Path('/tmp/opencode/oesscreen-out')
+    out_dir = SCRATCH / 'oesscreen-out'
     if out_dir.exists():
         for p in out_dir.iterdir():
             p.unlink()
