@@ -1,8 +1,8 @@
 # BigScreen on Steam Frame — reversing notes (phase B)
 
-Build: `com.bigscreenvr.bigscreen` v0.950.2.a276a2-beta, versionCode 4688857.
-Downloads: `Games/com.bigscreenvr.bigscreen/com.bigscreenvr.bigscreen.apk`
-(sha256 `6cae96955397be35…`, 1 175 485 713 bytes).
+Build: `com.bigscreenvr.bigscreen` v0.950.2.a276a2-beta, versionCode 4688857
+(the supported APK: sha256 `6cae96955397be35…`, 1 175 485 713 bytes, see
+[bigscreen/README.md](../../bigscreen/README.md#1-get-the-original-apk)).
 
 Everything here was produced by reading this exact APK: strings from
 `global-metadata.dat`, method map from Il2CppDumper (`dump.cs` + `script.json`),
