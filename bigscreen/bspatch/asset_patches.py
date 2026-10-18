@@ -57,7 +57,7 @@ def patch_oesblit(objs) -> None:
 
 def patch_texture3d(objs) -> None:
     """Shader 319 (MovieScreen: main media screen + browser screens) becomes a copy of Bigscreen's own
-    OES variant 825 (samplerExternalOES, multiview, opaque), keeping 319's name."""
+    OES variant 825 (samplerExternalOES, multiview, opaque), keeping 319's name, with its over-under eyes fixed."""
     dst, src = objs[TEXTURE3D[:2]], objs[TEXTURE3D_OES[:2]]
     dt, st = dst.read_typetree(), src.read_typetree()
     if _shader_name(dt) != TEXTURE3D[2] or _shader_name(st) != TEXTURE3D_OES[2]:
@@ -66,6 +66,7 @@ def patch_texture3d(objs) -> None:
         raise SystemExit('ABORT: shader 825 is not a self-contained drop-in for 319')
     st['m_ParsedForm']['m_Name'] = TEXTURE3D[2]
     st['m_Name'] = dt['m_Name']
+    shader_blob.store(st, shader_blob.map_sources(shader_blob.decompress(st), shader_blob.fix_texture3d_ou))
     dst.save_typetree(st)
 
 
@@ -125,7 +126,9 @@ def verify(env) -> list[str]:
                                              for s in shader_blob.sources(raw6)):
         problems.append('OESBlit')
     t319, t825 = objs[TEXTURE3D[:2]].read_typetree(), objs[TEXTURE3D_OES[:2]].read_typetree()
-    if _shader_name(t319) != TEXTURE3D[2] or t319['compressedBlob'] != t825['compressedBlob']:
+    raw319, raw825 = shader_blob.decompress(t319), shader_blob.decompress(t825)
+    if (_shader_name(t319) != TEXTURE3D[2] or not shader_blob.table_ok(raw319)
+            or raw319 != shader_blob.map_sources(raw825, shader_blob.fix_texture3d_ou)):
         problems.append('BSVR_Texture3D')
     raw327 = shader_blob.decompress(objs[DESKTOP_SHADER[:2]].read_typetree())
     if not shader_blob.table_ok(raw327) or any(shader_blob.MP_UV_NEW not in s or shader_blob.MV_UV_NEW not in s

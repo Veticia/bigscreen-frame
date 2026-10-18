@@ -88,6 +88,12 @@ stereo layouts). `sharedassets0` cannot reference `resources.assets` (no externa
 patch copies #825's complete serialized shader into #319, keeping #319's name. #319 has no other
 users. Orientation is correct as is: the `RegularScreen` transform is scaled (-1, -1, -1).
 
+The copy gets one fix. #825 picks the eye half by `_3dModeBigMedia` (same numbering as `_3dMode`
+below) and gives the left eye v 0.5–1 for over-under, but raw `samplerExternalOES` coordinates from
+the video decoder run top-down (v 0 is the first row), so each eye saw the other eye's picture. The
+OU (`== 2`) and UO (`== 4`) branch conditions trade places in both subprograms (same length).
+Side-by-side is unchanged.
+
 ### Underlay impostors — MeshRenderers `sharedassets0` #3538, #3566
 Children of the two media overlays (`Oculus/Underlay Impostor`, 8 cm in front of the screen) that
 punch the underlay hole. With the overlay off they drew a gray rectangle over the main screen.
@@ -135,4 +141,4 @@ behind the stub.
 - `tests/test_bspatch.py` checks the generated words against the build tested on the headset.
 - `dev/apk_diff.py original.apk patched.apk` shows exactly 56 changed code words (12 runs) and 7 changed
   objects (shaders 6, 319, 327; materials 9, 25; renderers 3538, 3566). The one-command build is
-  byte-identical (sha256 `3cf780ee…`) to the headset-tested build.
+  byte-identical (sha256 `e3597c52…`) to the headset-tested build.

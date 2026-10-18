@@ -1,6 +1,6 @@
 # Open issues
 
-Problems seen on the headset with the current build (24subs, sha256 `3cf780ee…`). **Their causes are
+Problems seen on the headset with the current build (25ou, sha256 `e3597c52…`; issue 1 first seen on 24subs). **Their causes are
 not determined yet.** Each candidate (Bigscreen itself, these patches, Lepton/Android, FramePort) is
 still open. This page collects the evidence and the leads; nothing here has been confirmed by an
 experiment.
@@ -15,6 +15,8 @@ experiment.
 | Switch to another TV channel | *"There was an error loading the content"*; later attempts error too |
 | Open a YouTube tab while a TV channel plays | Works: YouTube replaces the channel on the floating window and the screens |
 | After channel-switch errors, join an almost full public room | App froze |
+| DLNA local files: an H.264 file, then a 10-bit HEVC file, then others | H.264 plays; HEVC stays at 0:00; every following file fails to load |
+| DLNA local files, 8-bit only, switched three times | All play |
 
 ### Log evidence (FramePort session logs)
 
@@ -35,6 +37,13 @@ experiment.
   `MediaCodec::reclaim(0x…) OMX.frameport.avc.decoder` while joining the room (a peer desktop stream
   needs a decoder); afterwards BigSoup logs `Mic audio overflowed buffer; client likely stopped
   requesting samples` until the app was closed, so Unity had stopped while networking continued.
+- DLNA local files (no TV path, so `no-protected-overlay` is not involved): the HEVC file was Main 10
+  (`hvc1.2.4.H120`); `MediaCodecInfo` reported `NoSupport [codec.profileLevel]` for both
+  `OMX.frameport.hevc.decoder` and `OMX.google.hevc.decoder`, ExoPlayer used the FramePort one anyway and
+  no frame came out. Leaving it: `Player release timed out`, then the flush failed
+  (`signalError … internalError -110`, `CodecException 0xffffff92`). The next file:
+  `MediaCodec::reclaim(0x…) OMX.frameport.hevc.decoder`, `forcing the release of codec`, load failed;
+  every later file failed too, until Bigscreen was restarted.
 
 ### Candidate causes (unverified)
 
@@ -57,7 +66,9 @@ experiment.
    plays only on the mirrors, but switching can still be observed).
 3. Check whether ExoPlayer's release timeout or Bigscreen's release/start order can be changed (Java side,
    `com.bigscreenvr.bigmediaplayer.BigMediaPlayer`).
-4. If the decoder is confirmed as the cause, report it to FramePort with the timings.
+4. Reproduce the DLNA case on purpose: play a 10-bit HEVC file, then switch to an H.264 file. If it
+   repeats, one unplayable file is enough to block every later decoder start.
+5. If the decoder is confirmed as the cause, report it to FramePort with the timings.
 
 ## 2. Some streams answer HTTP 403
 

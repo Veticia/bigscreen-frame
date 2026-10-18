@@ -39,7 +39,7 @@ python3 bigscreen/build_bigscreen.py path/to/com.bigscreenvr.bigscreen.apk \
 ```
 
 It takes 2–5 minutes and prints each step. On success it prints the output's sha256. For the
-supported input that is **`3cf780ee9b8c48e4b6bdc8fbb15b1f2a312e2d2c3dcdfa8de5a3c0cb6fb22aee`**, the
+supported input that is **`e3597c526cfa876929162db4a626a1ba99a44e0b0e1250d36115b8b60c6cbb88`**, the
 build tested on a Steam Frame.
 
 If your system temp directory is small (or RAM-backed), pass `--tmp some/dir/on/a/disk`.

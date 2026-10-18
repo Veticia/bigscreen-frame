@@ -3,7 +3,8 @@
 The scripts written during the investigation, one per step, in the order of
 [docs/DEVLOG.md](../docs/DEVLOG.md). Each takes an APK of the *previous* step and writes the next one.
 They are kept as a record of what was tried. **Use `bigscreen/build_bigscreen.py` to build**: it applies
-the final patch set from the original APK in one pass and produces a byte-identical result.
+the final patch set from the original APK in one pass. Its result is byte-identical to the last step
+here (24subs) plus the over-under fix of 25ou, which has no step script (it lives only in `bspatch/`).
 
 Not maintained: they expect intermediate build APKs as inputs (every one documents which build it wants).
 Scratch space defaults to your temp directory (`<tmp>/bigscreen-steps`, override with `BIGSCREEN_SCRATCH`).

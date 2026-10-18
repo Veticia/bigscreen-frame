@@ -48,7 +48,8 @@ screen had to move into the 3D scene.
 | 21stereo | per-eye split in the Desktop shader by `_3dMode` | **3D correct** |
 | 22tv | `isProtectedExternalEnabled = false` | TV still not on the main screen (only the mirrors) |
 | 23show | stub also re-activates `regularScreen` | **TV on the main screen**; subtitles flash for one frame |
-| 24subs | subtitle fallback duration 4 s | **Subtitles readable.** Current release |
+| 24subs | subtitle fallback duration 4 s | **Subtitles readable.** |
+| 25ou | shader #319: OU / UO branches swapped | **Over-under local videos (DLNA) show the right eye in each eye.** Current release |
 
 Screenshots of the TV channel in two environments decided 22tv → 23show: the mirror screens (a PC
 monitor, seat-back screens) showed the channel while the main screen was missing, so the texture was

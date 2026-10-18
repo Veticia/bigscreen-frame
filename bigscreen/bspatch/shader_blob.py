@@ -101,6 +101,21 @@ def fix_oesblit(src: bytes) -> bytes:
     return new[:third] + blank + new[third + len(EXT_LINE):]
 
 
+# --------------------------------------------------------------------------- BSVR_Texture3D_OES (shader 825 -> 319)
+
+OU_BRANCH = b'_3dModeBigMedia == 2) { // OU'
+UO_BRANCH = b'_3dModeBigMedia == 4) { // UO'
+
+
+def fix_texture3d_ou(src: bytes) -> bytes:
+    """Swap the over-under and under-over branches: the shader treats texture v 0.5-1 as the top half, but raw
+    samplerExternalOES coordinates from a video decoder run top-down (v 0 = first row), so OU showed each eye
+    the other eye's picture. Same length (digits and comments trade places)."""
+    if src.count(OU_BRANCH) != 1 or src.count(UO_BRANCH) != 1 or b'\0' in src:
+        raise SystemExit('ABORT: BSVR_Texture3D_OES source is not the expected original')
+    return src.replace(OU_BRANCH, b'\0').replace(UO_BRANCH, OU_BRANCH).replace(b'\0', UO_BRANCH)
+
+
 # --------------------------------------------------------------------------- Desktop (shader 327)
 
 MP_UV = b'uvs = in_TEXCOORD0.xy;'

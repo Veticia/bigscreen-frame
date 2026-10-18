@@ -2,7 +2,7 @@
 
 Code patches run against a synthetic libil2cpp.so that only contains the
 fingerprinted words; the expected results are the words of the build that was
-tested on a Steam Frame (24subs, sha256 3cf780ee...). Shader rewrites run on
+tested on a Steam Frame (25ou, sha256 e3597c52...). Shader rewrites run on
 synthetic blobs with the same container layout and the same source landmarks.
 """
 
@@ -134,6 +134,20 @@ class ShaderBlobTests(unittest.TestCase):
         self.assertIn(b'uniform int _3dMode;layout(num_views = 2) in;', src)
         self.assertIn(b'uniform int _3dMode;uniform int unity_StereoEyeIndex;in highp vec3 in_POSITION0;', src)
         self.assertNotIn(b'PASS STEREO', src)
+
+    def test_texture3d_ou_swap_keeps_layout(self):
+        src = (b'#version 300 es\nif (_3dModeBigMedia == 1) { // SBS\n}\n'
+               b'else if (' + shader_blob.OU_BRANCH + b'\n  eye0 = uv + vec2(0.0f, 0.5f);\n}\n'
+               b'else if (' + shader_blob.UO_BRANCH + b'\n  eye0 = uv;\n}\n')
+        raw = make_blob([src, src])
+        out = shader_blob.map_sources(raw, shader_blob.fix_texture3d_ou)
+        self.assertEqual(len(out), len(raw))
+        self.assertEqual(shader_blob.table(out), shader_blob.table(raw))
+        for new in shader_blob.sources(out):
+            self.assertIn(shader_blob.UO_BRANCH + b'\n  eye0 = uv + vec2(0.0f, 0.5f);', new)
+            self.assertIn(shader_blob.OU_BRANCH + b'\n  eye0 = uv;', new)
+        with self.assertRaises(SystemExit):                   # a missing branch aborts
+            shader_blob.fix_texture3d_ou(src.replace(shader_blob.UO_BRANCH, b'x'))
 
     def test_broken_table_is_rejected(self):
         raw = bytearray(make_blob([OESBLIT_SRC]))

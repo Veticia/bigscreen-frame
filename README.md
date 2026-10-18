@@ -21,6 +21,7 @@ Tested on a Steam Frame (Lepton, Mesa/Zink GLES) with Bigscreen Beta
 | Local TV channels on the main screen, mirror screens and ambient room light | ✅ |
 | TV channel subtitles (CEA-608) | ✅ |
 | Peer / room screen sharing, including side-by-side and over-under **3D** | ✅ |
+| Local videos from a DLNA media server on the main screen, including over-under **3D** | ✅ |
 | Screens correctly hidden behind avatars, hands and props (in-scene rendering) | ✅ |
 | Switching TV channels / some streams | ⚠️ errors, cause under investigation, see [Known issues](#known-issues) |
 | Movie rentals | ❓ untested |
