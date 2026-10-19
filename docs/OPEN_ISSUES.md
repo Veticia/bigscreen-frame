@@ -14,6 +14,9 @@ experiment.
 | First TV channel | Plays (including on the main screen and with subtitles) |
 | Switch to another TV channel | *"There was an error loading the content"*; later attempts error too |
 | Try each TV channel (2026-10-19) | Only two channels play; the others fail the same way. They may be limited to the US (see issue 2) |
+| Switch between the two channels that play (2026-10-19, FramePort 1.3.0, 120 Hz) | Works |
+| Play a channel, stop it, then play a DLNA file | Stops cleanly (no timeout); the DLNA file plays |
+| Switch from a playing channel to one that fails (403) | The old player's release times out, the flush of its H.264 decoder fails (`internalError -110`); afterwards YouTube (VP9) and every later video fail until restart |
 | Open a YouTube tab while a TV channel plays | Works: YouTube replaces the channel on the floating window and the screens |
 | After channel-switch errors, join an almost full public room | App froze |
 | DLNA local files: an H.264 file, then a 10-bit HEVC file, then others | H.264 plays; HEVC stays at 0:00; every following file fails to load |
@@ -45,6 +48,15 @@ experiment.
   (`signalError … internalError -110`, `CodecException 0xffffff92`). The next file:
   `MediaCodec::reclaim(0x…) OMX.frameport.hevc.decoder`, `forcing the release of codec`, load failed;
   every later file failed too, until Bigscreen was restarted.
+
+- Switch to a blocked channel (2026-10-19): FramePort's plugin logged 30 fps until 30 s before the switch,
+  then nothing. At the switch, ExoPlayer's release of the old player timed out (500 ms); 3 s later the old
+  decoder's flush failed (`signalError … internalError -110`, `Codec reported err 0xffffff92 … in state 7`),
+  *before* the new channel's 403 arrived; ACodec force-released it 6 s after the stop. That decoder stayed
+  registered: YouTube's web view then asked for `OMX.frameport.vp9.decoder` and Android tried to reclaim the
+  stuck `OMX.frameport.avc.decoder` (`MediaCodec::reclaim(0x…)`), and YouTube didn't load; later TV attempts
+  reclaimed the same instance and timed out again. Switching between two channels that play, and stopping a
+  channel, did not fail in the same session type. The 10-bit decoder change only affects HEVC (this is H.264).
 
 ### Candidate causes (unverified)
 
@@ -194,3 +206,20 @@ With FramePort's foveated rendering on, Lepton enabled Valve's Vulkan foveation 
 (`'libVkLayer_VALVE_fdm_injection.so' enabled multiple times, skipping!`) and its Android stopped at
 `Waiting for boot...`: black screen, no app log at all. Bigscreen renders with GLES, which runs on Vulkan
 through Mesa's Zink, so the layer sits under it. One attempt, cause not investigated; leave foveation off.
+
+## 10. DLNA file sometimes plays as `null` (intermittent)
+
+In one session (2026-10-19, after a TV channel had played) every DLNA file failed:
+`ArgumentNullException: Value cannot be null. Parameter name: uriString` in `App.PlayVideoFileUrl` ←
+`VideoFileNavPage.OnFileSelected`, then a `NullReferenceException` in `BigContentController.PlayLocalVideo`.
+The next session with the same steps worked, so it is intermittent.
+
+What the code does: `VideoFileNavPage.LoadLocalFile` plays `File.Url` for media-server files;
+`File.CreateMediaServerFile` copies it from `Element.FileUrl`, and the item `Element` constructor sets
+`FileUrl` only from a `<res>` that carries a `duration` attribute (a `<res>` without one is taken as the icon).
+Bigscreen browses with `Filter=*`, and minidlna returned a duration for all 2537 entries, so the missing URL
+came from Bigscreen's side. A second media server had appeared on the network by then (Windows Media Player
+sharing on another PC); both servers have a top-level folder named "Video", and `DLNABrowser` looks
+containers up by path (`TryFindContainer`). Unproven lead. Nothing here is Frame-specific, so a Quest would
+likely behave the same. Next time: note the folder path and whether the other server is listed; minidlna's
+request log (`log_level=http=debug`) shows which server Bigscreen asked.
