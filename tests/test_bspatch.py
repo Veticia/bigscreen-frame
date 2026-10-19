@@ -2,7 +2,7 @@
 
 Code patches run against a synthetic libil2cpp.so that only contains the
 fingerprinted words; the expected results are the words of the build that was
-tested on a Steam Frame (25ou, sha256 e3597c52...). Shader rewrites run on
+tested on a Steam Frame (26ssdp, sha256 8294e36e...). Shader rewrites run on
 synthetic blobs with the same container layout and the same source landmarks.
 """
 
@@ -33,6 +33,9 @@ TESTED_WORDS = {
                 0xAA1F03E2, 0x940F3B08, 0xAA1303E0, 0xAA1403E1, 0xAA1503E2, 0x2A1603E3, 0xAA1F03E4, 0xA9425BF5,
                 0xA94153F3, 0xA8C37BFD, 0x14000200],
     0x149FD88: [0x1E624100, 0x1E221001, 0x1E281002, 0x1E222000, 0x1E21CC00, 0x17E46669],
+    0x149FDA0: [0x7100251F, 0x54000040, 0x17E7C168, 0xF9404A68, 0xB4000048, 0x17E7C16F, 0xF9004A73, 0x5280BB80,
+                0xAA1F03E1, 0x9417BAFC, 0xF9401A80, 0xB4000080, 0xAA1303E1, 0xAA1F03E2, 0x97EDD48A, 0x17E7C15B],
+    0xE90368: [0x14183E8E],
     0x1E25EFC: [0xD65F03C0, 0xD503201F, 0xD503201F, 0xD503201F],
     0x1E25F8C: [0xD65F03C0, 0xD503201F, 0xD503201F, 0xD503201F],
 }

@@ -18,6 +18,12 @@ UPDATE_REGULAR_OVERLAY = 0x149FD1C     # Bigscreen.Media.BigMediaRenderer$$Updat
 UPDATE_REGULAR_SCREEN = 0x14A0584      # Bigscreen.Media.BigMediaRenderer$$UpdateRegularScreen
 SUBTITLE_TIMER_FCVT = 0xDB973C         # <SubtitleTimer>d__103$$MoveNext: fcvt s0, d8
 SUBTITLE_CAVE = 0x149FD88              # dead tail of UpdateRegularOverlay once the stub is in place
+THREAD_SLEEP = 0x1A8E9B4               # System.Threading.Thread$$Sleep(int)
+SOCKET_SEND_TO_ASYNC = 0x1015000       # System.Net.Sockets.Socket$$SendToAsync
+SSDP_SEND_DONE = 0xE90368              # DLNAService$$OnSocketSendEventCompleted: `cmp w8, #9` (LastOperation == SendTo)
+SSDP_RETURN = 0xE90348                 # ... its epilogue
+SSDP_START_RECEIVE = 0xE90370          # ... its SendTo branch: switch the event args over to ReceiveFromAsync
+SSDP_CAVE = SUBTITLE_CAVE + 6 * 4      # dead tail of UpdateRegularOverlay, after the subtitle cave
 
 CALLEE_PROLOGUES = [
     (BEHAVIOUR_SET_ENABLED, [0xF81D0FF5, 0xA9014FF4, 0xA9027BFD, 0x910083FD], 'Behaviour$$set_enabled'),
@@ -26,6 +32,8 @@ CALLEE_PROLOGUES = [
      'BigMediaRenderer$$UpdateRegularScreen'),
     (0x103736C, [0xF9406A60], 'BigUIBrowser$$UpdateActiveStates (Regular branch)'),
     (0x108068C, None, 'EntitlementCheck$$HandleEntitlementCheckResult'),
+    (THREAD_SLEEP, [0x3100081F, 0x5400004D], 'Thread$$Sleep'),
+    (SOCKET_SEND_TO_ASYNC, [0xF81B0FF9, 0xA9015FF8, 0xA90257F6, 0xA9034FF4], 'Socket$$SendToAsync'),
 ]
 
 
@@ -85,6 +93,32 @@ def _subtitle_cave(base: int) -> list[int]:
     ]
 
 
+def _ssdp_cave(base: int) -> list[int]:
+    """Send the SSDP search a second time, 1.5 s after the first, before switching to receiving.
+
+    Lepton's pasta forwards replies to a container UDP port only after its port scan (about once a second) has
+    seen the port, so the answers to the first search are usually lost. x19 = event args (reused for the send
+    and the receive), x20 = this; event args.UserToken (+0x90, unused by Bigscreen) marks the second send."""
+    return [
+        0x7100251F,  # cmp  w8, #9                LastOperation == SendTo?
+        0x54000040,  # b.eq +8
+        arm64.branch(base + 2 * 4, SSDP_RETURN),
+        0xF9404A68,  # ldr  x8, [x19, #0x90]      UserToken
+        0xB4000048,  # cbz  x8, +8
+        arm64.branch(base + 5 * 4, SSDP_START_RECEIVE),               # second send done: receive as before
+        0xF9004A73,  # str  x19, [x19, #0x90]     mark the first send
+        0x5280BB80,  # mov  w0, #1500
+        0xAA1F03E1,  # mov  x1, xzr
+        arm64.branch(base + 9 * 4, THREAD_SLEEP, link=True),
+        0xF9401A80,  # ldr  x0, [x20, #0x30]      this.socket
+        0xB4000080,  # cbz  x0, +16
+        0xAA1303E1,  # mov  x1, x19
+        0xAA1F03E2,  # mov  x2, xzr
+        arm64.branch(base + 14 * 4, SOCKET_SEND_TO_ASYNC, link=True),  # completes into this handler again
+        arm64.branch(base + 15 * 4, SSDP_RETURN),
+    ]
+
+
 PATCHES = [
     Patch('entitlement', 0x1080594, [0xAA1F03E0, 0x97FFDE76, 0x97FFE66D],
           [0xAA1303E0, 0x52800021, arm64.branch(0x108059C, 0x108068C)],
@@ -130,6 +164,17 @@ PATCHES = [
     Patch('subtitle-duration', SUBTITLE_TIMER_FCVT, [0x1E624100], [arm64.branch(SUBTITLE_TIMER_FCVT, SUBTITLE_CAVE)],
           ['b #0x149fd88'],
           '<SubtitleTimer>d__103$$MoveNext: CEA-608 cues have no duration -> keep them 4 s'),
+    Patch('ssdp-cave', SSDP_CAVE,
+          [0xF9462C00, 0x97D8617C, 0xD000D420, 0xF947C000, 0x97D86179, 0xD000D4C0, 0xF9427C00, 0x97D86176,
+           0x9000D3A0, 0xF9431400, 0x97D86173, 0xD000D3A0, 0xF942A800, 0x97D86170, 0x9000D360, 0xF941C400],
+          _ssdp_cave(SSDP_CAVE),
+          ['cmp w8, #9', 'b.eq #0x149fdac', 'b #0xe90348', 'ldr x8, [x19, #0x90]', 'cbz x8, #0x149fdb8',
+           'b #0xe90370', 'str x19, [x19, #0x90]', 'mov w0, #0x5dc', 'mov x1, xzr', 'bl #0x1a8e9b4',
+           'ldr x0, [x20, #0x30]', 'cbz x0, #0x149fddc', 'mov x1, x19', 'mov x2, xzr', 'bl #0x1015000',
+           'b #0xe90348'],
+          'DLNA discovery: second SSDP search after 1.5 s (lives in the dead tail of UpdateRegularOverlay)'),
+    Patch('ssdp-resend', SSDP_SEND_DONE, [0x7100251F], [arm64.branch(SSDP_SEND_DONE, SSDP_CAVE)], ['b #0x149fda0'],
+          'DLNAService$$OnSocketSendEventCompleted: Lepton drops replies to the first search -> search twice'),
 ]
 
 

@@ -1,6 +1,6 @@
 # Open issues
 
-Problems seen on the headset with the current build (25ou, sha256 `e3597c52…`; issue 1 first seen on 24subs). **Their causes are
+Problems seen on the headset with the current build (26ssdp, sha256 `8294e36e…`; issue 1 first seen on 24subs). **Their causes are
 not determined yet.** Each candidate (Bigscreen itself, these patches, Lepton/Android, FramePort) is
 still open. This page collects the evidence and the leads; nothing here has been confirmed by an
 experiment.
@@ -86,3 +86,70 @@ Possibly Bigscreen's drag threshold together with the Frame controllers' pose no
 
 TV subtitles appear on the main screen but not on the mirror screens. Probably the same on Quest (the
 subtitle text belongs to `BigContentController`; mirrors copy only the video texture). Not checked on a Quest.
+
+## 5. 10-bit video (HEVC Main 10) does not play
+
+A Main 10 file stays at 0:00 and then blocks every later decoder start (issue 1, DLNA rows). Where the
+limit sits, as far as checked:
+
+- **Bigscreen**: ships no decoders and uses what Android offers (Bigscreen staff on Steam, 2023: *"we rely
+  on the codecs that are natively supported by the OS"*). On a Quest, Qualcomm's own Android codecs decode
+  Main 10 in hardware, so it most likely plays there. No report either way was found.
+- **Chip**: the Frame's SoC is SM8650 (Snapdragon 8 Gen 3; `gcc-sm8650` in the kernel log). It decodes Main 10
+  in hardware on Android phones.
+- **Host kernel driver**: SteamOS uses the upstream V4L2 driver `qcom-iris` (`/dev/video-dec0`). 10-bit
+  decoding (P010, QC10C) for it was posted by Neil Armstrong (Linaro) in April–June 2026, tested on SM8650,
+  and merged for **Linux 7.2** ([v3 cover letter](https://lwn.net/Articles/1072174/)); a QC10C fix followed
+  in July 2026. The Frame runs **6.18** (`6.18.0-ge66bc2ca6f8c`, 2026-10-19), and its decoder lists only
+  8-bit capture formats (Q08C, NV12, NV21, AB24, QC24). That listing was taken without an HEVC output
+  format set, so it is strong evidence, not proof, that Valve's kernel lacks the patches.
+- **Android in Lepton**: a container on the same kernel, not an emulator. Qualcomm's Android codec stack
+  (downstream `msm_vidc` + vendor Codec2/OMX libraries) is absent, so Android only has Google's software
+  codecs (`OMX.google.hevc.decoder` reports `NoSupport` for Main 10 on this Android version) plus FramePort's
+  `OMX.frameport.*` components. Those forward to the host's iris driver and handle 8-bit 4:2:0 (NV12) only,
+  by design (FramePort `native/hevc/README`). The container cannot get more than the host driver gives.
+
+So Main 10 is limited by the host kernel today, and by FramePort's decoder after that. None of it is in
+Bigscreen.
+
+### Next steps
+
+1. Confirm the driver limit while Bigscreen is **not** running (it opens a decoder instance):
+   `v4l2-ctl -d /dev/video-dec0 --set-fmt-video-out=pixelformat=HEVC --list-formats` and the HEVC profile
+   control (`--list-ctrls-menus`); look for P010 / Q10C and `Main 10`.
+2. Ask FramePort to make its HEVC component **refuse Main 10** cleanly instead of accepting it and hanging,
+   so ExoPlayer reports an error and the next file still plays. Smallest fix; gives the issue-1 report a
+   reproducible case.
+3. 10-bit playback now: software decode of Main 10 inside FramePort's component (libavcodec or similar),
+   output converted to 8-bit NV12. Should manage 1080p on the 8 Gen 3's big cores; 4K uncertain.
+4. 10-bit in hardware later: once SteamOS ships kernel ≥ 7.2 or Valve backports the iris patches, FramePort's
+   component needs a P010 (or Q10C) output path, or a conversion to 8-bit.
+
+## 6. DLNA discovery was unreliable on Lepton (fixed in 26ssdp)
+
+Lepton puts Android behind `pasta` (userspace network proxy). Tested on the Frame with a private pasta
+instance using Lepton's options: a single SSDP M-SEARCH from a fresh UDP socket got no unicast replies,
+while repeating it about 1.5 s later on the same socket got replies every time (12/12). Bigscreen's
+`DLNAService.FindDevices` sends one M-SEARCH per search, so a search sometimes finds nothing. Build 26ssdp
+resends it once after 1.5 s (`ssdp-cave` in `bspatch/code_patches.py`, see [PATCHES.md](PATCHES.md#dlna)).
+On the headset the server was found every time. Opening the server list takes 7–8 s; most of that is
+Bigscreen's own wait (in an unpatched run that did find the server, it fetched the description in the
+same second as the search and started browsing 11 s later), so a Quest should be similar.
+
+Also still to test on the headset: peer screen share with SBS/OU 3D (needs a second person).
+
+## 7. DLNA subtitles and audio: Bigscreen's own limits (same as Quest)
+
+The goal is Quest parity, so these are recorded, not patched:
+
+- **ASS/SSA subtitle tracks stay blank**; SRT tracks show, also as a second track after switching (test
+  MKVs: SRT+ASS, ASS only, ASS+SRT). Subtitle decoding is ExoPlayer's (Java) and track handling is
+  Bigscreen's; `BigMediaPlayer$TextOutputListener.onCues` forwards every cue that has text. Nothing in that
+  path is Frame-specific, so a Quest should behave the same. Not checked on a Quest.
+- **Sidecar `.srt` files** are not loaded: Bigscreen's Java player never adds external subtitle sources
+  (no `SubtitleConfiguration` / merged sources in `com.bigscreenvr`). The SRT loader of the bundled AVPro
+  player is only reachable from AVPro's own `MediaPlayer`, which local and DLNA playback do not use.
+  Workaround: mux the `.srt` into the file (`ffmpeg -i in.mkv -i in.srt -map 0 -map 1 -c copy out.mkv`).
+- **E-AC3 audio** is dropped (`FfmpegLibrary: No eac3 decoder available`): Bigscreen's FFmpeg lacks it, and
+  Lepton's Android has no E-AC3 decoder. Whether a Quest's Android provides one (which would make this a
+  parity gap) is not known.

@@ -132,6 +132,22 @@ frame. The `fcvt s0, d8` that converts the duration branches to a 6-instruction 
 still change on time. The cave lives at 0x149fd88, the dead remainder of `UpdateRegularOverlay`
 behind the stub.
 
+## DLNA
+
+### `ssdp-resend` + `ssdp-cave` — `DLNAService$$OnSocketSendEventCompleted` @0xe90368
+Lepton puts Android behind `pasta`, which forwards a container UDP port only after its port scan
+(about once a second) has seen it. `DLNAService.FindDevices` sends one SSDP M-SEARCH from a new socket,
+and the servers' unicast replies arrive within milliseconds, so they were usually dropped and the search
+found nothing (reproduced on the Frame with Lepton's pasta options: 1 of 12 single searches found the
+server, 12 of 12 with a second search 1.5 s later on the same socket).
+
+Bigscreen reuses the send's `SocketAsyncEventArgs` for receiving: when the send completes
+(`LastOperation == SendTo`), the handler switches it to `ReceiveFromAsync`. The handler's `cmp w8, #9`
+branches to a 16-instruction cave at 0x149fda0 (right after the subtitle cave): on the first completion
+it sets the event args' `UserToken` (+0x90, unused by Bigscreen) as a marker, calls `Thread.Sleep(1500)`
+and `socket.SendToAsync(e)` with the unchanged M-SEARCH, and returns; the second completion finds the
+marker and continues into Bigscreen's original receive setup. Both callees are ones Bigscreen already uses.
+
 ## Verification
 
 - `bspatch.code_patches.apply` checks every original word (and the prologues of every function the
@@ -139,6 +155,6 @@ behind the stub.
 - `bspatch.asset_patches` checks names/shader ids before editing; the build re-reads the saved bundle
   and checks every patched object; shader blobs must keep an intact subprogram table.
 - `tests/test_bspatch.py` checks the generated words against the build tested on the headset.
-- `dev/apk_diff.py original.apk patched.apk` shows exactly 56 changed code words (12 runs) and 7 changed
+- `dev/apk_diff.py original.apk patched.apk` shows exactly 73 changed code words (13 runs) and 7 changed
   objects (shaders 6, 319, 327; materials 9, 25; renderers 3538, 3566). The one-command build is
-  byte-identical (sha256 `e3597c52…`) to the headset-tested build.
+  byte-identical (sha256 `8294e36e…`) to the headset-tested build.

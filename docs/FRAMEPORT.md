@@ -14,17 +14,12 @@ Once per headset (from FramePort's own instructions):
 
 ## Per-game settings used in testing
 
-FramePort's per-game `settings.conf` of the tested install:
+Tested with FramePort 1.2.1 and its suggested recipe for Bigscreen, unchanged (FramePort's defaults).
 
-```
-scale=1.0
-foveation_fix=1
-controller_fix=1
-equirect_emul=1
-```
-
-`equirect_emul` ("Show 360° backgrounds and videos") makes FrameBridge redraw Bigscreen's 360°
-layers (the Frame's runtime drops equirect layers). Everything else is FramePort's default.
+"Show 360° backgrounds and videos" (`equirect_emul`) is not needed and was off in the tested install:
+360° room backgrounds show without it. Bigscreen creates one small (128×128) equirect layer that the
+Frame's runtime drops, so FramePort's log check reports `equirect-layers-dropped`; nothing visible is
+missing.
 
 ## How Bigscreen meets the Frame's compositor
 
