@@ -13,6 +13,7 @@ experiment.
 |---|---|
 | First TV channel | Plays (including on the main screen and with subtitles) |
 | Switch to another TV channel | *"There was an error loading the content"*; later attempts error too |
+| Try each TV channel (2026-10-19) | Only two channels play; the others fail the same way. They may be limited to the US (see issue 2) |
 | Open a YouTube tab while a TV channel plays | Works: YouTube replaces the channel on the floating window and the screens |
 | After channel-switch errors, join an almost full public room | App froze |
 | DLNA local files: an H.264 file, then a 10-bit HEVC file, then others | H.264 plays; HEVC stays at 0:00; every following file fails to load |
@@ -75,7 +76,12 @@ experiment.
 ExoPlayer: `HttpDataSource$InvalidResponseCodeException: Response code: 403` for some TV channels / videos,
 others play. Not determined whether the server rejects the content (region, licensing), the request
 (headers, tokens), or the account session as established by the PC login flow (`pc-login`,
-`entitlement` patches). Next step: log the failing URLs and compare their request with a working one.
+`entitlement` patches).
+
+Lead (2026-10-19): only two TV channels play and every other one fails, which looks like a region limit
+(US-only channels) rather than the port; it would also explain part of issue 1 (a "switch" to a blocked
+channel fails whatever the decoder does). Next steps: try the failing channels from a US connection (VPN
+on the network the Frame uses), and log the failing URLs to compare their request with a working one.
 
 ## 3. Browser clicks register as drags
 
@@ -166,3 +172,21 @@ The goal is Quest parity, so these are recorded, not patched:
   MediaCodec has no Dolby decoder
   ([Meta forum](https://communityforums.atmeta.com/discussions/dev-unity/no-dolby-atmos-decoder-in-mediacodec-on-meta-quest-3-v78/1331125)).
   Workaround: re-encode the audio (e.g. `-c:v copy -c:a aac`, or `ac3` to keep 5.1).
+
+## 8. Controller laser starts at the wrist with FramePort's Quest 3 identity (workaround: Quest 2)
+
+FramePort 1.3.0 adds `device.headset_model` to every Quest game, default Quest 3: the OpenXR system name
+and OVRPort's headset UUID say "Meta Quest 3". OVRPlugin logs `systemName Meta Quest 3`, but Bigscreen's
+Oculus Utilities 1.78 have no name for that headset yet and log `SystemHeadset Placeholder_11` (as Quest 2:
+`SystemHeadset Oculus_Quest_2`). With it, the controller laser starts at the wrist instead of the finger.
+Workaround: Headset model **Quest 2** in FramePort (keeps OVRPort's original answers; everything else here
+was tested that way). Not known: whether a real Quest 3 shows the same with this Bigscreen build (its
+OVRPlugin would report the same headset), so this may or may not be a parity gap. Possibly worth telling
+FramePort, since other games with older Oculus Utilities would meet the same unknown headset.
+
+## 9. Foveated rendering: Android doesn't boot
+
+With FramePort's foveated rendering on, Lepton enabled Valve's Vulkan foveation layer twice
+(`'libVkLayer_VALVE_fdm_injection.so' enabled multiple times, skipping!`) and its Android stopped at
+`Waiting for boot...`: black screen, no app log at all. Bigscreen renders with GLES, which runs on Vulkan
+through Mesa's Zink, so the layer sits under it. One attempt, cause not investigated; leave foveation off.

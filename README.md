@@ -49,13 +49,18 @@ byte-identical to the build that was tested on the headset.
 Problems seen on the headset. Their causes are not determined yet; the evidence collected so far
 is in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md).
 
-- Switching to another TV channel shows *"There was an error loading the content"*.
+- Only a few TV channels play (two in testing); the others show *"There was an error loading the content"*.
+  They may be limited to the US: failing streams answer *HTTP 403*. Not confirmed yet (no test from a US
+  connection).
 - In one session with such errors, joining an almost full public room froze the app.
-- Some streams do not load; the log shows an *HTTP 403* response for them.
+- FramePort 1.3.0 reports the headset as a Quest 3 by default. Bigscreen's Oculus code predates the Quest 3
+  and doesn't recognise it, and the controller laser then starts at the wrist instead of the finger. Set
+  the game's **Headset model** to **Quest 2** in FramePort (see [docs/FRAMEPORT.md](docs/FRAMEPORT.md)).
 - In the browser, a controller click sometimes registers as click-and-drag.
 - 10-bit HEVC (Main 10) videos stay at 0:00 and block later videos until Bigscreen restarts. The cause is
-  FramePort's video decoder; a fix for it works on the headset but is not in FramePort yet. It can be built
-  and installed with [`frameport-decoder/`](frameport-decoder/).
+  FramePort's video decoder; a fix for it works on the headset but is not in FramePort yet
+  ([pull request #426](https://github.com/spoopyghosty0/frameport/pull/426)). Until then it can be built and
+  installed with [`frameport-decoder/`](frameport-decoder/).
 
 ## Repository layout
 

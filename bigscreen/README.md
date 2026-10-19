@@ -55,8 +55,9 @@ FramePort re-signs the APK and installs it.
   FramePort **Add games → Scan a folder…**, pick the parent folder, open Bigscreen and **Install on Frame**.
 - **Bigscreen already installed via FramePort:** use the game's **Newer APK** action and pick the patched file.
 
-Recommended per-game settings (what the tested install used): **Show 360° backgrounds and
-videos** (`equirect_emul`) on; FramePort's defaults for the rest. See [docs/FRAMEPORT.md](../docs/FRAMEPORT.md).
+Recommended per-game settings: **Headset model: Quest 2** (FramePort 1.3.0's default Quest 3 makes the
+controller laser start at the wrist); FramePort's defaults for the rest. Leave foveated rendering off (the
+game doesn't start). Display refresh rate 120 Hz works. See [docs/FRAMEPORT.md](../docs/FRAMEPORT.md).
 
 ## 4. Sign in
 
