@@ -127,7 +127,8 @@ yet; the hang comes from FramePort's component asking for NV12. None of it is in
    Tested in Bigscreen: 1080p and 4K Main 10 test clips and a real 1080p Main 10 episode play; 8-bit HEVC
    and H.264 afterwards play too. FFmpeg's software HEVC decoder on the Frame's CPU (4 threads, as the
    component uses): real 1080p Main 10 232 fps, synthetic 4K Main 10 72 fps.
-3. Offer the change to FramePort upstream.
+3. Offered to FramePort: [pull request #426](https://github.com/spoopyghosty0/frameport/pull/426) (same binary,
+   with the profile check in `native/hevc/hevc_profile.h` and a host test).
 4. 10-bit in hardware later: a `Q10C` capture path in FramePort's component, which needs the compressed
    layout decoded (GPU) before the 8-bit output; or P010 if a later kernel offers it.
 

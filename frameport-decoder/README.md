@@ -4,7 +4,7 @@ Bigscreen decodes video through Android's MediaCodec. On the Frame that is Frame
 plugin (`OMX.frameport.hevc/avc/vp9.decoder`, FramePort `native/hevc`). In FramePort 1.2.1 an HEVC Main 10
 (10-bit) video stays at 0:00 and then blocks every later video until the app restarts. This folder holds a
 change to that plugin that makes Main 10 play, and scripts to build and install it. It is not part of
-FramePort yet. Background: [docs/OPEN_ISSUES.md](../docs/OPEN_ISSUES.md#5-10-bit-video-hevc-main-10-fixed-in-a-frameport-decoder-change-not-yet-upstream).
+FramePort yet: offered as [pull request #426](https://github.com/spoopyghosty0/frameport/pull/426). Background: [docs/OPEN_ISSUES.md](../docs/OPEN_ISSUES.md#5-10-bit-video-hevc-main-10-fixed-in-a-frameport-decoder-change-not-yet-upstream).
 
 ## What the patch changes
 
