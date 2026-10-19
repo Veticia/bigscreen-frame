@@ -16,7 +16,8 @@ experiment.
 | Try each TV channel (2026-10-19) | Only two channels play; the others fail the same way. They may be limited to the US (see issue 2) |
 | Switch between the two channels that play (2026-10-19, FramePort 1.3.0, 120 Hz) | Works |
 | Play a channel, stop it, then play a DLNA file | Stops cleanly (no timeout); the DLNA file plays |
-| Switch from a playing channel to one that fails (403) | The old player's release times out, the flush of its H.264 decoder fails (`internalError -110`); afterwards YouTube (VP9) and every later video fail until restart |
+| Switch from a playing channel to one that fails (403) | Once: the old player's release timed out, the flush of its H.264 decoder failed (`internalError -110`); afterwards YouTube (VP9) and every later video failed until restart. Repeated in the next session with many switches including blocked channels: no lock-up, DLNA and TV played afterwards |
+| Same session, a 384×216 stream | Iris failed on its first packets and FramePort's software fallback took over; leaving another 384×216 stream, `Player release timed out` again, but the next channel got a decoder at once (no flush failure) |
 | Open a YouTube tab while a TV channel plays | Works: YouTube replaces the channel on the floating window and the screens |
 | After channel-switch errors, join an almost full public room | App froze |
 | DLNA local files: an H.264 file, then a 10-bit HEVC file, then others | H.264 plays; HEVC stays at 0:00; every following file fails to load |
@@ -57,6 +58,9 @@ experiment.
   stuck `OMX.frameport.avc.decoder` (`MediaCodec::reclaim(0x…)`), and YouTube didn't load; later TV attempts
   reclaimed the same instance and timed out again. Switching between two channels that play, and stopping a
   channel, did not fail in the same session type. The 10-bit decoder change only affects HEVC (this is H.264).
+  Not reproducible on demand: slow releases (`Player release timed out`) happen fairly often, and only once
+  did the decoder's flush also fail, which is what left it stuck. In both sessions the slow/failed starts
+  involved small or changing stream resolutions (384×216; 960×540 → 1920×1080), a lead only.
 
 ### Candidate causes (unverified)
 
