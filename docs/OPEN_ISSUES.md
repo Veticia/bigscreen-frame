@@ -180,8 +180,11 @@ and OVRPort's headset UUID say "Meta Quest 3". OVRPlugin logs `systemName Meta Q
 Oculus Utilities 1.78 have no name for that headset yet and log `SystemHeadset Placeholder_11` (as Quest 2:
 `SystemHeadset Oculus_Quest_2`). With it, the controller laser starts at the wrist instead of the finger.
 Workaround: Headset model **Quest 2** in FramePort (keeps OVRPort's original answers; everything else here
-was tested that way). Not known: whether a real Quest 3 shows the same with this Bigscreen build (its
-OVRPlugin would report the same headset), so this may or may not be a parity gap. Possibly worth telling
+was tested that way). There is no Quest 3 build to switch to: the Meta store serves the same build
+(0.950.2.a276a2, build `38732876729693280`) to Quest 2, Quest Pro, Quest 3 and Quest 3S (checked per headset
+type, 2026-10-19; only the original Quest gets an older build). Not known: whether a real Quest 3 shows the
+same laser with this build (its OVRPlugin would report the same headset), so this may or may not be a
+parity gap. Possibly worth telling
 FramePort, since other games with older Oculus Utilities would meet the same unknown headset.
 
 ## 9. Foveated rendering: Android doesn't boot
