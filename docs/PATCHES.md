@@ -80,6 +80,11 @@ channels) render into `protectedExternalOverlay`, an OVROverlay Android-surface 
 Bigscreen's texture playback path (`BigMediaPlayer.StartProtectedMediaSession`) and the regular
 screen. The picture was never really protected: mirrors and ambient light sampled it all along.
 
+Re-checked 2026-10-19 (FramePort 1.3.0, all other patches in place): the TV channels available in testing
+never start a protected session (`StartProtectedMediaSession` not called, `Updating the regular texture`),
+and a build without this patch showed them on the main screen and the mirrors too. Ordinary channels
+therefore don't depend on it; it stays for protected sessions, which would otherwise go to the overlay.
+
 ### In-scene shader for the media and browser screens — Shader `sharedassets0` #319
 `MovieScreen` (#18), the material of `RegularScreen` and of the five browser prefabs' screens, uses
 `Unlit/BSVR_Texture3D`, a `sampler2D` shader that cannot sample OES video textures (blank or gray).

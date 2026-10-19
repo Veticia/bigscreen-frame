@@ -59,7 +59,14 @@ experiment.
   reclaimed the same instance and timed out again. Switching between two channels that play, and stopping a
   channel, did not fail in the same session type. The 10-bit decoder change only affects HEVC (this is H.264).
   Not reproducible on demand: slow releases (`Player release timed out`) happen fairly often, and only once
-  did the decoder's flush also fail, which is what left it stuck. In both sessions the slow/failed starts
+  did the decoder's flush also fail, which is what left it stuck.
+- Second lock-up (2026-10-19, also on a build without `no-protected-overlay`): again the plugin's 5-second
+  output lines stopped 15–20 s **before** the channel switch (first lock-up: 30 s before), then the flush
+  failed 3 s after the stop. So the decoder's thread stalls *during* playback, and the switch's flush is
+  never handled. Closing the hardware session is not the slow part: a test decoder that closed sessions on
+  a background thread and logged closes of 100 ms or more logged none, and still locked up. Next: find the
+  call the decoder thread blocks in (candidates: FFmpeg's V4L2 frame fetch, which waits with no time limit,
+  and locking the output buffer, which waits on the consumer's fence), then bound that wait. In both sessions the slow/failed starts
   involved small or changing stream resolutions (384×216; 960×540 → 1920×1080), a lead only.
 
 ### Candidate causes (unverified)
@@ -227,3 +234,12 @@ sharing on another PC); both servers have a top-level folder named "Video", and 
 containers up by path (`TryFindContainer`). Unproven lead. Nothing here is Frame-specific, so a Quest would
 likely behave the same. Next time: note the folder path and whether the other server is listed; minidlna's
 request log (`log_level=http=debug`) shows which server Bigscreen asked.
+
+## 11. Seek bar does nothing for the first local file after a TV channel
+
+Play a TV channel, then open a DLNA file: seeking does nothing (reproduced twice, 2026-10-19). Stopping and
+reopening the file makes seeking work; YouTube followed by a file is fine. The player never receives the
+seeks (no `Seek processed`), while decoding and playback are identical to the working reopen, so the
+controls keep state from the live TV stream. The TV channels tested don't use Bigscreen's protected media
+session (see PATCHES.md, `no-protected-overlay`), so that patch is not involved; most likely the same on a
+Quest. Workaround: stop and reopen the file.
