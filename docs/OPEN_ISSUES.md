@@ -87,10 +87,11 @@ Possibly Bigscreen's drag threshold together with the Frame controllers' pose no
 TV subtitles appear on the main screen but not on the mirror screens. Probably the same on Quest (the
 subtitle text belongs to `BigContentController`; mirrors copy only the video texture). Not checked on a Quest.
 
-## 5. 10-bit video (HEVC Main 10) does not play
+## 5. 10-bit video (HEVC Main 10): fixed in a FramePort decoder change, not yet upstream
 
-A Main 10 file stays at 0:00 and then blocks every later decoder start (issue 1, DLNA rows). Where the
-limit sits, as far as checked:
+With FramePort 1.2.1's decoder, a Main 10 file stays at 0:00 and then blocks every later decoder start
+(issue 1, DLNA rows). A change to FramePort's decoder (below) makes it play; until FramePort ships it, it
+has to be built and installed by hand. Where the limit sits:
 
 - **Bigscreen**: ships no decoders and uses what Android offers (Bigscreen staff on Steam, 2023: *"we rely
   on the codecs that are natively supported by the OS"*). On a Quest, Qualcomm's own Android codecs decode
@@ -100,30 +101,35 @@ limit sits, as far as checked:
 - **Host kernel driver**: SteamOS uses the upstream V4L2 driver `qcom-iris` (`/dev/video-dec0`). 10-bit
   decoding (P010, QC10C) for it was posted by Neil Armstrong (Linaro) in April–June 2026, tested on SM8650,
   and merged for **Linux 7.2** ([v3 cover letter](https://lwn.net/Articles/1072174/)); a QC10C fix followed
-  in July 2026. The Frame runs **6.18** (`6.18.0-ge66bc2ca6f8c`, 2026-10-19), and its decoder lists only
-  8-bit capture formats (Q08C, NV12, NV21, AB24, QC24). That listing was taken without an HEVC output
-  format set, so it is strong evidence, not proof, that Valve's kernel lacks the patches.
+  in July 2026. The Frame runs **6.18** (`iris_driver` 6.18.0). Without a coded format set its decoder lists
+  only 8-bit capture formats, but **with HEVC selected it offers `Q10C`** (Qualcomm compressed 10-bit) and its
+  `hevc_profile` menu includes **Main 10** (checked 2026-10-19 with `v4l2-ctl`). There is no plain P010, so
+  hardware Main 10 output exists only in Qualcomm's compressed (UBWC) layout. FramePort's component always
+  asks for NV12 capture; a Main 10 stream in an NV12 session returns no pictures, which is the hang.
 - **Android in Lepton**: a container on the same kernel, not an emulator. Qualcomm's Android codec stack
   (downstream `msm_vidc` + vendor Codec2/OMX libraries) is absent, so Android only has Google's software
   codecs (`OMX.google.hevc.decoder` reports `NoSupport` for Main 10 on this Android version) plus FramePort's
   `OMX.frameport.*` components. Those forward to the host's iris driver and handle 8-bit 4:2:0 (NV12) only,
   by design (FramePort `native/hevc/README`). The container cannot get more than the host driver gives.
 
-So Main 10 is limited by the host kernel today, and by FramePort's decoder after that. None of it is in
-Bigscreen.
+So the hardware can decode Main 10, but only into a compressed layout FramePort's component cannot read
+yet; the hang comes from FramePort's component asking for NV12. None of it is in Bigscreen.
 
 ### Next steps
 
-1. Confirm the driver limit while Bigscreen is **not** running (it opens a decoder instance):
-   `v4l2-ctl -d /dev/video-dec0 --set-fmt-video-out=pixelformat=HEVC --list-formats` and the HEVC profile
-   control (`--list-ctrls-menus`); look for P010 / Q10C and `Main 10`.
-2. Ask FramePort to make its HEVC component **refuse Main 10** cleanly instead of accepting it and hanging,
-   so ExoPlayer reports an error and the next file still plays. Smallest fix; gives the issue-1 report a
-   reproducible case.
-3. 10-bit playback now: software decode of Main 10 inside FramePort's component (libavcodec or similar),
-   output converted to 8-bit NV12. Should manage 1080p on the 8 Gen 3's big cores; 4K uncertain.
-4. 10-bit in hardware later: once SteamOS ships kernel ≥ 7.2 or Valve backports the iris patches, FramePort's
-   component needs a P010 (or Q10C) output path, or a conversion to 8-bit.
+1. Done: the driver offers Main 10 and `Q10C` (see above).
+2. Done, works on the headset: FramePort's component built from v1.2.1 with a change
+   ([`frameport-decoder/`](../frameport-decoder/): patch, build and install scripts; decoder revision 9,
+   installed next to FramePort's revision 8, which stays for rollback). HEVC streams whose SPS profile is beyond Main go
+   straight to FFmpeg's software decoder (inside the same component), its 10-bit pictures are rounded to
+   8-bit planar, and the component lists Main 10 (level 5.1). HDR10 is not tone-mapped. The same build
+   without the change reproduces FramePort's binary byte for byte (NDK r27c, Lepton rootfs libraries).
+   Tested in Bigscreen: 1080p and 4K Main 10 test clips and a real 1080p Main 10 episode play; 8-bit HEVC
+   and H.264 afterwards play too. FFmpeg's software HEVC decoder on the Frame's CPU (4 threads, as the
+   component uses): real 1080p Main 10 232 fps, synthetic 4K Main 10 72 fps.
+3. Offer the change to FramePort upstream.
+4. 10-bit in hardware later: a `Q10C` capture path in FramePort's component, which needs the compressed
+   layout decoded (GPU) before the 8-bit output; or P010 if a later kernel offers it.
 
 ## 6. DLNA discovery was unreliable on Lepton (fixed in 26ssdp)
 

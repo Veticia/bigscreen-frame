@@ -53,12 +53,16 @@ is in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md).
 - In one session with such errors, joining an almost full public room froze the app.
 - Some streams do not load; the log shows an *HTTP 403* response for them.
 - In the browser, a controller click sometimes registers as click-and-drag.
+- 10-bit HEVC (Main 10) videos stay at 0:00 and block later videos until Bigscreen restarts. The cause is
+  FramePort's video decoder; a fix for it works on the headset but is not in FramePort yet. It can be built
+  and installed with [`frameport-decoder/`](frameport-decoder/).
 
 ## Repository layout
 
 | Path | What |
 |---|---|
 | [`bigscreen/`](bigscreen/) | **The patcher.** `build_bigscreen.py` + the `bspatch` package (code and asset patches) |
+| [`frameport-decoder/`](frameport-decoder/) | Optional: 10-bit HEVC for FramePort's video decoder (patch, build and install scripts; GPL-3.0-only) |
 | [`docs/PATCHES.md`](docs/PATCHES.md) | Every patch: symptom, root cause, fix, how it was verified |
 | [`docs/DEVLOG.md`](docs/DEVLOG.md) | How the port got here, build by build, including the dead ends |
 | [`docs/FRAMEPORT.md`](docs/FRAMEPORT.md) | FramePort setup and settings, how Bigscreen meets the Frame's compositor |
@@ -88,4 +92,5 @@ is a trademark of Bigscreen, Inc.; this project is not affiliated with Bigscreen
 Meta or FramePort.
 
 Licensed under the **GNU GPL v3.0 or later** ([LICENSE](LICENSE)).
-`tools/vendor/axrb/meta.mjs` is vendored from AXRB (GPL-3.0); see its README.
+`tools/vendor/axrb/meta.mjs` is vendored from AXRB (GPL-3.0); see its README. The patch in
+`frameport-decoder/` modifies FramePort's GPL-3.0-only source and is GPL-3.0-only.
