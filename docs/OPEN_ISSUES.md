@@ -150,6 +150,12 @@ The goal is Quest parity, so these are recorded, not patched:
   (no `SubtitleConfiguration` / merged sources in `com.bigscreenvr`). The SRT loader of the bundled AVPro
   player is only reachable from AVPro's own `MediaPlayer`, which local and DLNA playback do not use.
   Workaround: mux the `.srt` into the file (`ffmpeg -i in.mkv -i in.srt -map 0 -map 1 -c copy out.mkv`).
-- **E-AC3 audio** is dropped (`FfmpegLibrary: No eac3 decoder available`): Bigscreen's FFmpeg lacks it, and
-  Lepton's Android has no E-AC3 decoder. Whether a Quest's Android provides one (which would make this a
-  parity gap) is not known.
+- **E-AC3 audio** is dropped (`FfmpegLibrary: No eac3 decoder available`). Test clips with a beep: AC3 5.1
+  plays, E-AC3 5.1 (MKV) and E-AC3 stereo (MP4) are silent. AC3 is decoded by Bigscreen's own FFmpeg, which
+  has no E-AC3; Lepton's Android has no AC3/E-AC3 decoder at all (only Google's MP3, AAC, Vorbis, Opus, FLAC,
+  AMR, G.711). Same on Quest: Quest 2 users report E-AC3 films silent in Bigscreen
+  ([r/bigscreen](https://www.reddit.com/r/bigscreen/comments/r3s7ha/does_anyone_know_why_eac3_audio_formats_dont_play/),
+  [Emby forum](https://emby.media/community/topic/91248-dlna-in-bigscreen-on-oculus/page/4/)), and Quest 3's
+  MediaCodec has no Dolby decoder
+  ([Meta forum](https://communityforums.atmeta.com/discussions/dev-unity/no-dolby-atmos-decoder-in-mediacodec-on-meta-quest-3-v78/1331125)).
+  Workaround: re-encode the audio (e.g. `-c:v copy -c:a aac`, or `ac3` to keep 5.1).
