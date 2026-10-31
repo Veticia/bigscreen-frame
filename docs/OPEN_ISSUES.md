@@ -1,9 +1,9 @@
 # Open issues
 
-Problems seen on the headset with the current build (26ssdp, sha256 `8294e36e…`; issue 1 first seen on 24subs). **Their causes are
+Problems seen on the headset with the current build (26ssdp, sha256 `8294e36e…`; issue 1 first seen on 24subs). **Most causes are
 not determined yet.** Each candidate (Bigscreen itself, these patches, Lepton/Android, FramePort) is
-still open. This page collects the evidence and the leads; nothing here has been confirmed by an
-experiment.
+still open unless a section says otherwise. This page collects the evidence and the leads. Issues 5 and 13
+were settled by experiment.
 
 ## 1. Video errors: TV channel switching, freeze
 
@@ -283,3 +283,66 @@ Next:
 3. Test the dialog's advice: close Bigscreen completely, relaunch it from the Steam library, and retry.
 
 
+## 13. Microphone cuts in and out (cause found; fix offered to FramePort)
+
+Others in the room heard the Frame's microphone cut in and out, in nearly every second. **Cause found and
+fixed on the headset** (2026-10-31, FramePort 1.4.0); the fix is offered to FramePort as
+[pull request #549](https://github.com/spoopyghosty0/frameport/pull/549), patch `frame.unity_mic_ring`. It is
+a Frame-only difference: Bigscreen's own code works as intended, and on a Quest the cause can't occur (below).
+
+### Where the audio was lost
+
+Each layer was measured during humming and silence in a room with another participant (Bigscreen sends Opus
+even in silence: there is no voice detection):
+
+| Layer | Result |
+|---|---|
+| Frame's mic and PipeWire (raw ALSA mic, echo-cancel chain, Lepton's loopback source) | continuous; the processed signal is only the default source volume (0.82) lower |
+| Lepton's audio HAL / AudioFlinger (`dumpsys media.audio_flinger`, record track) | continuous, 100 % of real time delivered to Bigscreen's `AudioRecord` |
+| OpenSL ES → FMOD (Unity's audio engine) | every 512-frame buffer arrives and is re-queued |
+| FMOD → Unity's `Microphone` clip (`Microphone.GetPosition`) | **13 % of real time**: stands still 200–550 ms, then jumps 512–1536 frames |
+| Bigscreen `MicInput.Tick` → `BigSoupBroadcastMicAudio` | sends everything the clip offers |
+| Network (mic packets to the Mediasoup server) | 25–35 per second instead of 200, with 0.2–0.56 s gaps |
+
+The refresh rate made no difference (72 Hz and 120 Hz the same), and neither did a +10 dB mic gain.
+
+### Cause
+
+1. Lepton's audio HAL (Valve's `frame-public/android_hardware_waydroid`, `adev_open_input_stream`) opens the
+   microphone as 48 kHz **stereo 32-bit**. Unity's FMOD asks OpenSL ES for **mono 16-bit** with the fast
+   capture path. Android 11 grants that path only when format and channel mask match the HAL's
+   (`RecordThread::createRecordTrack_l`), so it is refused:
+   `AudioFlinger: createRecordTrack_l(): mismatch between requested flags (00000005) and input flags (00000001)`.
+2. The normal path (20 ms notifications, a 2880-frame track) fills FMOD's buffers in bursts: about 70 % of
+   wake-ups fill four 512-frame buffers back to back, every ~40 ms.
+3. FMOD's recording ring is four DSP buffers (`System::getDSPBufferSize`: 4 × 512 frames, 43 ms), and it
+   knows new audio only by the ring index of the next buffer. A 4-buffer burst brings the index back where
+   it was: FMOD sees no new audio and the burst is overwritten. Only bursts of 1–3 buffers get through.
+
+On a Quest the fast path delivers about one buffer at a time, so the ring is never lapped.
+
+### How it was found
+
+All observation was passive except two temporary tests (a gain change, reverted; the in-memory fix below).
+
+- [`dev/mic_probe.py`](../dev/mic_probe.py): mic taps on the Frame, `pw-top`, logcat, `dumpsys`, and a
+  `tcpdump` of the mic transport, on one clock.
+- Bigscreen's code: `libBigSoup.so` (with symbols) and `MicInput` from `libil2cpp.so` (method addresses from
+  `global-metadata.dat`), decompiled with REA/Ghidra and capstone. FMOD's record path in `libunity.so`.
+- Live tracing: Lepton apps run as the Frame's `steamos` user, so the host's `gdb` attaches to Bigscreen
+  without Android root. Breakpoints that only log and continue were set on `MicInput.Tick` (position),
+  `BigMicStream::Broadcast`, libwilhelm's `audioRecorder_callback` / `IBufferQueue_Enqueue`, and FMOD's
+  record update and record position (`libunity.so` `0x1240178`, `0x124c724`, callback `0x124d32c`).
+
+### Fix
+
+The buffer count FMOD's recorder start reads from `getDSPBufferSize` becomes 16 (8192 frames, longer than
+the whole 2880-frame AudioFlinger track): four instructions in `libunity.so`. Sound output keeps Unity's own
+buffers.
+
+- In memory (gdb at the recorder start): 201 mic packets/s of 200, no gap over 68 ms.
+- The patched `libunity.so` in a re-signed copy of the deployed APK: 200 packets/s, no gap over 68 ms, and
+  the voice no longer cuts out.
+
+Until FramePort ships the patch, a rebuild from FramePort brings the dropouts back. The deeper fix would be
+in Lepton: a mono 16-bit capture profile that Android can give the fast path.

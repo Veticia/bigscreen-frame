@@ -25,6 +25,7 @@ Tested on a Steam Frame (Lepton, Mesa/Zink GLES) with Bigscreen Beta
 | 10-bit HEVC (Main 10) local videos | ✅ with FramePort 1.4.0 or later |
 | AV1 local videos | ❌ audio only, no picture; see [Known issues](#known-issues) |
 | Screens correctly hidden behind avatars, hands and props (in-scene rendering) | ✅ |
+| Voice chat (microphone) | ⚠️ cuts in and out for the others until FramePort ships `frame.unity_mic_ring`; see [Known issues](#known-issues) |
 | Switching TV channels / some streams | ⚠️ errors, cause under investigation, see [Known issues](#known-issues) |
 | Shop purchases (movie rentals, tickets, room environments) | ❌ *"Unable to start a purchase of this item"*; see [Known issues](#known-issues) |
 
@@ -51,6 +52,11 @@ byte-identical to the build that was tested on the headset.
 Problems seen on the headset. Most causes are not determined yet; the evidence collected so far
 is in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md).
 
+- The microphone cuts in and out for the other people in the room: only about 13 % of the voice is sent.
+  Cause found: Lepton's microphone reaches Unity's audio engine (FMOD) in bursts that overrun its 4-buffer
+  recording ring. Not Bigscreen's fault, and not the case on a Quest. Fixed on the headset by a FramePort patch
+  offered as [pull request #549](https://github.com/spoopyghosty0/frameport/pull/549) (`frame.unity_mic_ring`);
+  details in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md#13-microphone-cuts-in-and-out-cause-found-fix-offered-to-frameport).
 - Buying or renting from the shop fails with *"Unable to start a purchase of this item. Try closing
   Bigscreen and restart through your platform's app library."* The shop itself opens and lists items.
 - Only a few TV channels play (two in testing); the others show *"There was an error loading the content"*.
