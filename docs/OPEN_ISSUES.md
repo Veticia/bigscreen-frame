@@ -1,6 +1,6 @@
 # Open issues
 
-Problems seen on the headset with the current build (26ssdp, sha256 `8294e36e…`; issue 1 first seen on 24subs). **Most causes are
+Problems seen on the headset with the current build (28peerou, sha256 `47f970fa…`; issue 1 first seen on 24subs). **Most causes are
 not determined yet.** Each candidate (Bigscreen itself, these patches, Lepton/Android, FramePort) is
 still open unless a section says otherwise. This page collects the evidence and the leads. Issues 5 and 13
 were settled by experiment.
@@ -172,7 +172,9 @@ On the headset the server was found every time. Opening the server list takes 7�
 Bigscreen's own wait (in an unpatched run that did find the server, it fetched the description in the
 same second as the search and started browsing 11 s later), so a Quest should be similar.
 
-Also still to test on the headset: peer screen share with SBS/OU 3D (needs a second person).
+Peer screen share with OU 3D in another person's room showed reversed eyes; fixed in 28peerou, which swaps
+the OU/UO halves in the Desktop shader (see [PATCHES.md](PATCHES.md)), confirmed on the headset 2026-10-31.
+Still to test on the headset: peer SBS 3D.
 
 ## 7. DLNA subtitles and audio: Bigscreen's own limits (same as Quest)
 

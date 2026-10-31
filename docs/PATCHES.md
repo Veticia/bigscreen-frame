@@ -124,6 +124,11 @@ both halves side by side. The patch adds the split to the vertex stage of both v
 - multi-pass: by `unity_StereoEyeIndex` (the Frame build renders multi-pass);
 - `STEREO_MULTIVIEW_ON`: by `gl_ViewID_OVR`.
 
+As with #319, the peer video's `samplerExternalOES` coordinates run top-down (the shader has no v
+flip and the picture is upright), so over-under gives the left eye v 0–0.5 and under-over v 0.5–1.
+(The first version had these the other way round, and in a host's OU share each eye saw the other
+eye's picture; fixed in 28peerou and confirmed on the headset.)
+
 Length-preserving again (banner comments removed, spaces padded); all four stage/variant
 combinations compile cleanly with `glslangValidator`.
 
@@ -162,4 +167,4 @@ marker and continues into Bigscreen's original receive setup. Both callees are o
 - `tests/test_bspatch.py` checks the generated words against the build tested on the headset.
 - `dev/apk_diff.py original.apk patched.apk` shows exactly 73 changed code words (13 runs) and 7 changed
   objects (shaders 6, 319, 327; materials 9, 25; renderers 3538, 3566). The one-command build is
-  byte-identical (sha256 `8294e36e…`) to the headset-tested build.
+  byte-identical (sha256 `47f970fa…`) to the headset-tested build.

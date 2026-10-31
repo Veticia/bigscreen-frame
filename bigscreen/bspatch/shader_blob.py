@@ -121,11 +121,11 @@ def fix_texture3d_ou(src: bytes) -> bytes:
 MP_UV = b'uvs = in_TEXCOORD0.xy;'
 MP_UV_NEW = (b'uvs = in_TEXCOORD0.xy;float e=float(unity_StereoEyeIndex);'
              b'if(_3dMode==1||_3dMode==3)uvs.x=uvs.x*.5+.5*(_3dMode==1?e:1.-e);'
-             b'else if(_3dMode>1)uvs.y=uvs.y*.5+.5*(_3dMode==4?e:1.-e);')
+             b'else if(_3dMode>1)uvs.y=uvs.y*.5+.5*(_3dMode==2?e:1.-e);')
 MV_UV = b'vs_TEXCOORD0.y = vs_TEXCOORD0.y;'
 MV_UV_NEW = (b'float e=float(gl_ViewID_OVR);'
              b'if(_3dMode==1||_3dMode==3)vs_TEXCOORD0.x=vs_TEXCOORD0.x*.5+.5*(_3dMode==1?e:1.-e);'
-             b'else if(_3dMode>1)vs_TEXCOORD0.y=vs_TEXCOORD0.y*.5+.5*(_3dMode==4?e:1.-e);')
+             b'else if(_3dMode>1)vs_TEXCOORD0.y=vs_TEXCOORD0.y*.5+.5*(_3dMode==2?e:1.-e);')
 MV_DECL_AT = b'layout(num_views = 2) in;'
 MP_POS = b'          in highp vec3 in_POSITION0;'          # 2nd occurrence = multi-pass vertex stage
 MP_DECL = b'          uniform int _3dMode;uniform int unity_StereoEyeIndex;' + MP_POS[10:]
