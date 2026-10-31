@@ -25,6 +25,7 @@ Tested on a Steam Frame (Lepton, Mesa/Zink GLES) with Bigscreen Beta
 | 10-bit HEVC (Main 10) local videos | ✅ with FramePort 1.4.0 or later |
 | AV1 local videos | ❌ audio only, no picture; see [Known issues](#known-issues) |
 | Screens correctly hidden behind avatars, hands and props (in-scene rendering) | ✅ |
+| Colours as on Quest | ⚠️ too bright until FramePort ships `adapter.gl_gamma_space`; see [Known issues](#known-issues) |
 | Voice chat (microphone) | ⚠️ cuts in and out for the others until FramePort ships `frame.unity_mic_ring`; see [Known issues](#known-issues) |
 | Switching TV channels / some streams | ⚠️ errors, cause under investigation, see [Known issues](#known-issues) |
 | Shop purchases (movie rentals, tickets, room environments) | ❌ *"Unable to start a purchase of this item"*; see [Known issues](#known-issues) |
@@ -57,6 +58,10 @@ is in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md).
   recording ring. Not Bigscreen's fault, and not the case on a Quest. Fixed on the headset by a FramePort patch
   offered as [pull request #549](https://github.com/spoopyghosty0/frameport/pull/549) (`frame.unity_mic_ring`);
   details in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md#13-microphone-cuts-in-and-out-cause-found-fix-offered-to-frameport).
+- The picture is too bright (mid-tones and shadows lifted, black stays black): Bigscreen renders in Gamma colour
+  space, and the Frame's sRGB-only eye images encode its colours a second time. Fixed on the headset by the setting
+  **Gamma colour space (OpenGL ES)** from FramePort [pull request #534](https://github.com/spoopyghosty0/frameport/pull/534)
+  (not released yet); details in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md#14-picture-too-bright-cause-found-fix-in-frameport-pull-request-534).
 - Buying or renting from the shop fails with *"Unable to start a purchase of this item. Try closing
   Bigscreen and restart through your platform's app library."* The shop itself opens and lists items.
 - Only a few TV channels play (two in testing); the others show *"There was an error loading the content"*.

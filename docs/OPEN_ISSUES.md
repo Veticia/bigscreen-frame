@@ -346,3 +346,46 @@ buffers.
 
 Until FramePort ships the patch, a rebuild from FramePort brings the dropouts back. The deeper fix would be
 in Lepton: a mono 16-bit capture profile that Android can give the fast path.
+
+## 14. Picture too bright (cause found; fix in FramePort pull request #534)
+
+Seen 2026-10-31 next to a Pico 4 running Bigscreen's PC app: on the Frame, rooms and menus look brighter. Black
+stays black, but mid-tones and shadows lift: dark slate panels turn light grey, orange turns yellow, and room walls
+lose most of their baked shading. **Cause found; fixed on the headset with FramePort
+[pull request #534](https://github.com/spoopyghosty0/frameport/pull/534)** (not written for this port; tested here).
+
+### Cause
+
+Bigscreen's Android build renders in Unity's **Gamma** colour space (`m_ActiveColorSpace` 0 in
+`globalgamemanagers`, the same as the PC build), so it asks for `GL_RGBA8` eye images
+(`xrCreateSwapchain 2592x2592 format=32856 … result=-26`). The Frame's runtime offers only sRGB formats, so
+FrameBridge's `swapchain_fix` retries with `GL_SRGB8_ALPHA8`. On GLES, drawing into an sRGB image encodes every pixel
+from linear to sRGB (`GL_FRAMEBUFFER_SRGB_EXT` defaults to on), so Bigscreen's already gamma-encoded colours are
+encoded a second time. A Quest accepts `RGBA8` and shows the bytes unchanged.
+
+Measured on flat menu colours against a Quest screenshot of the same menu, the Frame's colour equals the Quest's
+after one extra linear→sRGB encode:
+
+| | Quest | Frame | Quest + one sRGB encode |
+|---|---|---|---|
+| Twitch tile | 148, 68, 252 | 200, 143, 255 | 200, 141, 254 |
+| Shop tile | 255, 112, 2 | 255, 178, 0 | 255, 177, 22 |
+| Menu button | 58, 71, 83 | 138, 143, 149 | 131, 144, 155 |
+| Side panel | 43, 50, 60 | 119, 122, 129 | 114, 122, 133 |
+
+The room content was ruled out first: the Android and PC builds both use Gamma colour space and plain LDR lightmaps
+(ASTC 6×6 on Android, BC7 on PC), so the "missing baked lighting" look comes from the double encoding, not from the
+assets.
+
+### Fix
+
+- By hand (proof): `glDisable(GL_FRAMEBUFFER_SRGB_EXT)` on Bigscreen's render thread through gdb on the Frame host
+  turned the colours right, and they stayed right across scene changes.
+- FramePort [pull request #534](https://github.com/spoopyghosty0/frameport/pull/534) (by another contributor, found
+  for PLAY'A VR) adds the game setting **Gamma colour space (OpenGL ES)** (`adapter.gl_gamma_space`): FramePort's GL
+  shim keeps sRGB write conversion off. Bigscreen already loads the GL shim (`frame.unity_gl_shim`). With the PR
+  applied to FramePort 1.4.0 (shim built from its source) and the setting on, the colours are correct in the
+  headset. Bigscreen's results and two suggestions (suggest the setting from Unity's colour space; longer term,
+  `GL_RGBA8` texture views in FrameBridge) were added to the pull request.
+
+Until the pull request is in a FramePort release, the setting does not exist in FramePort.
