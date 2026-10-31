@@ -22,9 +22,11 @@ Tested on a Steam Frame (Lepton, Mesa/Zink GLES) with Bigscreen Beta
 | TV channel subtitles (CEA-608) | ✅ |
 | Peer / room screen sharing, including side-by-side and over-under **3D** | ✅ |
 | Local videos from a DLNA media server on the main screen, including over-under **3D** | ✅ |
+| 10-bit HEVC (Main 10) local videos | ✅ with FramePort 1.4.0 or later |
+| AV1 local videos | ❌ audio only, no picture; see [Known issues](#known-issues) |
 | Screens correctly hidden behind avatars, hands and props (in-scene rendering) | ✅ |
 | Switching TV channels / some streams | ⚠️ errors, cause under investigation, see [Known issues](#known-issues) |
-| Movie rentals | ❓ untested |
+| Shop purchases (movie rentals, tickets, room environments) | ❌ *"Unable to start a purchase of this item"*; see [Known issues](#known-issues) |
 
 ## Quick start
 
@@ -46,28 +48,35 @@ byte-identical to the build that was tested on the headset.
 
 ## Known issues
 
-Problems seen on the headset. Their causes are not determined yet; the evidence collected so far
+Problems seen on the headset. Most causes are not determined yet; the evidence collected so far
 is in [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md).
 
+- Buying or renting from the shop fails with *"Unable to start a purchase of this item. Try closing
+  Bigscreen and restart through your platform's app library."* The shop itself opens and lists items.
 - Only a few TV channels play (two in testing); the others show *"There was an error loading the content"*.
   They may be limited to the US: failing streams answer *HTTP 403*. Not confirmed yet (no test from a US
   connection).
 - In one session with such errors, joining an almost full public room froze the app.
-- FramePort 1.3.0 reports the headset as a Quest 3 by default. Bigscreen's Oculus code predates the Quest 3
+- FramePort (1.3.0 and 1.4.0) reports the headset as a Quest 3 by default. Bigscreen's Oculus code predates the Quest 3
   and doesn't recognise it, and the controller laser then starts at the wrist instead of the finger. Set
   the game's **Headset model** to **Quest 2** in FramePort (see [docs/FRAMEPORT.md](docs/FRAMEPORT.md)).
 - In the browser, a controller click sometimes registers as click-and-drag.
-- 10-bit HEVC (Main 10) videos stay at 0:00 and block later videos until Bigscreen restarts. The cause is
-  FramePort's video decoder; a fix for it works on the headset but is not in FramePort yet
-  ([pull request #426](https://github.com/spoopyghosty0/frameport/pull/426)). Until then it can be built and
-  installed with [`frameport-decoder/`](frameport-decoder/).
+- AV1 videos play their sound but no picture: the Frame has no AV1 decoder and Bigscreen's player brings no
+  software one. Likely the same on a Quest 2 (not tested).
+- Videos with 5.1 Opus audio play it in one ear only: Bigscreen's audio code has no channel layout for
+  Opus (*"No channel configuration could be found for the mime type: audio/opus"*).
+- A DLNA file sometimes does not start: Bigscreen gets no address for it (`ArgumentNullException …
+  uriString`) although the media server sends one, while other files in the same session play.
+- 10-bit HEVC (Main 10) videos stayed at 0:00 and blocked later videos with FramePort 1.3.0 and earlier.
+  The fix ([pull request #426](https://github.com/spoopyghosty0/frameport/pull/426)) is part of FramePort
+  1.4.0; update FramePort.
 
 ## Repository layout
 
 | Path | What |
 |---|---|
 | [`bigscreen/`](bigscreen/) | **The patcher.** `build_bigscreen.py` + the `bspatch` package (code and asset patches) |
-| [`frameport-decoder/`](frameport-decoder/) | Optional: 10-bit HEVC for FramePort's video decoder (patch, build and install scripts; GPL-3.0-only) |
+| [`frameport-decoder/`](frameport-decoder/) | Historical: the 10-bit HEVC decoder fix as built for FramePort 1.2.1 (patch, build and install scripts; GPL-3.0-only). Not needed with FramePort 1.4.0 or later |
 | [`docs/PATCHES.md`](docs/PATCHES.md) | Every patch: symptom, root cause, fix, how it was verified |
 | [`docs/DEVLOG.md`](docs/DEVLOG.md) | How the port got here, build by build, including the dead ends |
 | [`docs/FRAMEPORT.md`](docs/FRAMEPORT.md) | FramePort setup and settings, how Bigscreen meets the Frame's compositor |

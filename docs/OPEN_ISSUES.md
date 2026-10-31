@@ -116,11 +116,11 @@ Possibly Bigscreen's drag threshold together with the Frame controllers' pose no
 TV subtitles appear on the main screen but not on the mirror screens. Probably the same on Quest (the
 subtitle text belongs to `BigContentController`; mirrors copy only the video texture). Not checked on a Quest.
 
-## 5. 10-bit video (HEVC Main 10): fixed in a FramePort decoder change, not yet upstream
+## 5. 10-bit video (HEVC Main 10): fixed in FramePort 1.4.0
 
 With FramePort 1.2.1's decoder, a Main 10 file stays at 0:00 and then blocks every later decoder start
-(issue 1, DLNA rows). A change to FramePort's decoder (below) makes it play; until FramePort ships it, it
-has to be built and installed by hand. Where the limit sits:
+(issue 1, DLNA rows). A change to FramePort's decoder (below) makes it play; FramePort 1.4.0 ships it, so
+nothing has to be installed by hand any more. Where the limit sits:
 
 - **Bigscreen**: ships no decoders and uses what Android offers (Bigscreen staff on Steam, 2023: *"we rely
   on the codecs that are natively supported by the OS"*). On a Quest, Qualcomm's own Android codecs decode
@@ -156,8 +156,8 @@ yet; the hang comes from FramePort's component asking for NV12. None of it is in
    Tested in Bigscreen: 1080p and 4K Main 10 test clips and a real 1080p Main 10 episode play; 8-bit HEVC
    and H.264 afterwards play too. FFmpeg's software HEVC decoder on the Frame's CPU (4 threads, as the
    component uses): real 1080p Main 10 232 fps, synthetic 4K Main 10 72 fps.
-3. Offered to FramePort: [pull request #426](https://github.com/spoopyghosty0/frameport/pull/426) (same binary,
-   with the profile check in `native/hevc/hevc_profile.h` and a host test).
+3. Offered to FramePort as [pull request #426](https://github.com/spoopyghosty0/frameport/pull/426) (same binary,
+   with the profile check in `native/hevc/hevc_profile.h` and a host test); the fix is in FramePort 1.4.0.
 4. 10-bit in hardware later: a `Q10C` capture path in FramePort's component, which needs the compressed
    layout decoded (GPU) before the 8-bit output; or P010 if a later kernel offers it.
 
@@ -243,3 +243,43 @@ seeks (no `Seek processed`), while decoding and playback are identical to the wo
 controls keep state from the live TV stream. The TV channels tested don't use Bigscreen's protected media
 session (see PATCHES.md, `no-protected-overlay`), so that patch is not involved; most likely the same on a
 Quest. Workaround: stop and reopen the file.
+
+## 12. Shop purchases fail with "Unable to start a purchase of this item"
+
+Observed on the headset 2026-10-31. The shop opens and lists items, but buying the *Sports Bar* environment
+($9.99) shows an in-app dialog:
+
+> Unable to start a purchase of this item.
+> Try closing Bigscreen and restart through your platform's app library.
+
+The purchase fails inside Bigscreen: no other activity starts. `logcat` at the time has no
+`ActivityTaskManager` START, and the focused activity stays
+`com.bigscreenvr.bigscreen/com.unity3d.player.UnityPlayerActivity`. Screenshot and logcat are in
+`local/evidence/` (`20261031-shop-purchase-error.jpg`, `logcat-shop-20261031.txt`; both ignored by git).
+
+At startup the same session logs:
+
+```
+E/Unity: Exception: Oculus platform not initialised.
+  at Bigscreen.Cloud.Utils+<GetOculusUserData>d__3.MoveNext ()
+  at Bigscreen.Cloud.Accounts+<FetchStoreProfileData>d__47.MoveNext ()
+  at Bigscreen.Cloud.Accounts.FetchStoreProfileData ()
+```
+
+and the app reports `PRODUCT NAME: Oculus Quest`. The build expects Oculus Platform services (accounts and
+IAP) that the port does not provide; that is the leading explanation for the failed purchase, not yet proven
+to be the dialog's direct cause. The dialog text exists in `global-metadata.dat` (sha256 `1d87710b…`);
+REA also found `BigscreenShop`, `FindBigscreenStoreCheckout`, `https://bigscreenvr.com/purchase/`, the
+strings *"Check your inbox or click below to complete the purchase in your browser"* and *"An email with a
+link to the purchase page has been sent"*, and Oculus purchase code (`ovr_IAP_ConsumePurchase`,
+`Purchase_Error_CreateOculusOrder`). So the APK also contains a web checkout, but the runtime failure happens
+before either flow completes.
+
+Next:
+
+1. Watch `adb logcat` live while pressing buy, and record the exception immediately before the dialog.
+2. Find the dialog string's XREF in `libil2cpp.so` to identify the failing branch (Oculus IAP init,
+   entitlement, or web checkout).
+3. Test the dialog's advice: close Bigscreen completely, relaunch it from the Steam library, and retry.
+
+
